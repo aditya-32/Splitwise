@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: spreadsheet-postgres
+    environment:
+      POSTGRES_DB: spreadsheet
+      POSTGRES_USER: spreadsheet_user
+      POSTGRES_PASSWORD: spreadsheet_pass
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./data.sql:/docker-entrypoint-initdb.d/02-data.sql
+    networks:
+      - spreadsheet-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spreadsheet_user -d spreadsheet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer:latest
+    container_name: spreadsheet-adminer
+    ports:
+      - "8081:8080"
+    networks:
+      - spreadsheet-network
+    depends_on:
+      - postgres
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  spreadsheet-network:
+    driver: bridge
+
